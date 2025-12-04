@@ -35,13 +35,13 @@ export const sensorService = {
       try {
         await connectDB();
         await SensorDataModel.create({
-          mq2_sensor1: data.mq2_sensor1,
-          mq2_sensor2: data.mq2_sensor2,
-          den_canhbao_nhom1: data.den_canhbao_nhom1,
-          den_canhbao_nhom2: data.den_canhbao_nhom2,
-          quat_coi_nhom1: data.quat_coi_nhom1,
-          quat_coi_nhom2: data.quat_coi_nhom2,
-          timestamp: new Date(),
+            mq2_sensor1: data.mq2_sensor1,
+            mq2_sensor2: data.mq2_sensor2,
+            den_canhbao_nhom1: data.den_canhbao_nhom1,
+            den_canhbao_nhom2: data.den_canhbao_nhom2,
+            quat_coi_nhom1: data.quat_coi_nhom1,
+            quat_coi_nhom2: data.quat_coi_nhom2,
+            timestamp: new Date(),
         });
       } catch (error) {
         console.error('Error saving alert to database:', error);
@@ -89,7 +89,7 @@ export const sensorService = {
         $or: [
           { den_canhbao_nhom1: { $in: ['RED', 'YELLOW'] } },
           { den_canhbao_nhom2: { $in: ['RED', 'YELLOW'] } },
-        ],
+          ],
       })
         .sort({ timestamp: -1 })
         .limit(limit || 100)

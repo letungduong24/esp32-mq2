@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useSession, signOut } from 'next-auth/react';
 import { SensorData } from './types/sensor';
 import SensorCard from './components/SensorCard';
 import StatusBar from './components/StatusBar';
@@ -8,16 +9,19 @@ import AlertBanner from './components/AlertBanner';
 import RelayControl from './components/RelayControl';
 import RealtimeChart from './components/RealtimeChart';
 import AlertsModal from './components/AlertsModal';
+import LoginDialog from './components/LoginDialog';
 import { setRelayControl, getLatestData } from './lib/api';
 import { Button } from '@/components/ui/button';
 
 export default function Home() {
+  const { data: session } = useSession();
   const [sensorData, setSensorData] = useState<SensorData | null>(null);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isAlertsModalOpen, setIsAlertsModalOpen] = useState(false);
+  const [isLoginDialogOpen, setIsLoginDialogOpen] = useState(false);
 
   useEffect(() => {
     // Fetch dữ liệu lần đầu
@@ -64,13 +68,30 @@ export default function Home() {
               Theo dõi trực tuyến dữ liệu từ cảm biến MQ2
             </p>
           </div>
-          <Button
-            onClick={() => setIsAlertsModalOpen(true)}
-            variant="default"
-            className="bg-yellow-500 hover:bg-yellow-600"
-          >
-            Lịch Sử Cảnh Báo
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              onClick={() => setIsAlertsModalOpen(true)}
+              variant="default"
+              className="bg-yellow-500 hover:bg-yellow-600"
+            >
+              Lịch Sử Cảnh Báo
+            </Button>
+            {session ? (
+              <Button
+                onClick={() => signOut({ callbackUrl: '/' })}
+                variant="outline"
+              >
+                Đăng Xuất
+              </Button>
+            ) : (
+              <Button
+                onClick={() => setIsLoginDialogOpen(true)}
+                variant="outline"
+              >
+                Đăng Nhập
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* Status Bar */}
@@ -147,6 +168,7 @@ export default function Home() {
                 onControlChange={async (group, mode) => {
                   await setRelayControl(group, mode);
                 }}
+                onLoginRequired={() => setIsLoginDialogOpen(true)}
               />
               <RelayControl
                 title="Điều Khiển Quạt & Còi Nhóm 2"
@@ -155,6 +177,7 @@ export default function Home() {
                 onControlChange={async (group, mode) => {
                   await setRelayControl(group, mode);
                 }}
+                onLoginRequired={() => setIsLoginDialogOpen(true)}
               />
               {/* Connection Status */}
               <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm text-center text-sm text-gray-500">
@@ -180,6 +203,12 @@ export default function Home() {
         <AlertsModal
           isOpen={isAlertsModalOpen}
           onClose={() => setIsAlertsModalOpen(false)}
+        />
+
+        {/* Login Dialog */}
+        <LoginDialog
+          isOpen={isLoginDialogOpen}
+          onClose={() => setIsLoginDialogOpen(false)}
         />
       </div>
     </div>

@@ -1,8 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth/next';
+import { NextAuthOptions } from 'next-auth';
 import { updateControlState, getControlState } from '../command/route';
 
-// POST /api/esp32/control - Điều khiển relay
+// Auth config
+const authOptions: NextAuthOptions = {
+  providers: [],
+  secret: process.env.NEXTAUTH_SECRET || 'your-secret-key-change-in-production',
+};
+
+// POST /api/esp32/control - Điều khiển relay (yêu cầu authentication)
 export async function POST(request: NextRequest) {
+  // Kiểm tra authentication
+  const session = await getServerSession(authOptions);
+  
+  if (!session) {
+    return NextResponse.json(
+      { success: false, message: 'Unauthorized. Please login first.' },
+      { status: 401 }
+    );
+  }
+
   try {
     const body = await request.json();
     const { group, mode } = body;

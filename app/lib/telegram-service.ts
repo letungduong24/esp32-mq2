@@ -75,9 +75,23 @@ export function formatAlertMessage(
     timestamp?: string;
   }
 ): string {
+  // Format thời gian với timezone Việt Nam (UTC+7)
+  const formatTime = (date: Date) => {
+    return new Intl.DateTimeFormat('vi-VN', {
+      timeZone: 'Asia/Ho_Chi_Minh',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false,
+    }).format(date);
+  };
+
   const time = sensorData.timestamp
-    ? new Date(sensorData.timestamp).toLocaleString('vi-VN')
-    : new Date().toLocaleString('vi-VN');
+    ? formatTime(new Date(sensorData.timestamp))
+    : formatTime(new Date());
 
   const getAlertEmoji = (status: string) => {
     if (status === 'RED') return '🔴';
