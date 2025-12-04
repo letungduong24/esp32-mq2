@@ -1,5 +1,6 @@
 import { SensorData } from '../types/sensor';
-import prisma from '../../lib/prisma';
+import connectDB from '../../lib/mongodb';
+import SensorDataModel, { ISensorDataLean } from '../../models/SensorData';
 import {
   sendTelegramNotification,
   formatAlertMessage,
@@ -40,16 +41,15 @@ export const sensorService = {
     // Chỉ lưu vào database nếu có cảnh báo (yellow hoặc red)
     if (hasAlert(data)) {
       try {
-        await prisma.sensorData.create({
-          data: {
-            mq2_sensor1: data.mq2_sensor1,
-            mq2_sensor2: data.mq2_sensor2,
-            den_canhbao_nhom1: data.den_canhbao_nhom1,
-            den_canhbao_nhom2: data.den_canhbao_nhom2,
-            quat_coi_nhom1: data.quat_coi_nhom1,
-            quat_coi_nhom2: data.quat_coi_nhom2,
-            timestamp: new Date(),
-          },
+        await connectDB();
+        await SensorDataModel.create({
+          mq2_sensor1: data.mq2_sensor1,
+          mq2_sensor2: data.mq2_sensor2,
+          den_canhbao_nhom1: data.den_canhbao_nhom1,
+          den_canhbao_nhom2: data.den_canhbao_nhom2,
+          quat_coi_nhom1: data.quat_coi_nhom1,
+          quat_coi_nhom2: data.quat_coi_nhom2,
+          timestamp: new Date(),
         });
       } catch (error) {
         console.error('Error saving alert to database:', error);
@@ -108,25 +108,29 @@ export const sensorService = {
   // Lấy lịch sử cảnh báo từ database (chỉ RED và YELLOW)
   async getAlertHistory(limit?: number): Promise<SensorData[]> {
     try {
-      const records = await prisma.sensorData.findMany({
-        where: {
-          OR: [
-            { den_canhbao_nhom1: { in: ['RED', 'YELLOW'] } },
-            { den_canhbao_nhom2: { in: ['RED', 'YELLOW'] } },
-          ],
-        },
-        take: limit,
-        orderBy: { timestamp: 'desc' },
-      });
+      await connectDB();
+      const query = SensorDataModel.find({
+        $or: [
+          { den_canhbao_nhom1: { $in: ['RED', 'YELLOW'] } },
+          { den_canhbao_nhom2: { $in: ['RED', 'YELLOW'] } },
+        ],
+      })
+        .sort({ timestamp: -1 })
+        .limit(limit || 100)
+        .lean();
 
-      return records.map((record: { mq2_sensor1: number; mq2_sensor2: number; den_canhbao_nhom1: string; den_canhbao_nhom2: string; quat_coi_nhom1: string; quat_coi_nhom2: string; timestamp: Date }) => ({
+      const records = (await query) as any[];
+
+      return records.map((record: any) => ({
         mq2_sensor1: record.mq2_sensor1,
         mq2_sensor2: record.mq2_sensor2,
         den_canhbao_nhom1: record.den_canhbao_nhom1,
         den_canhbao_nhom2: record.den_canhbao_nhom2,
         quat_coi_nhom1: record.quat_coi_nhom1,
         quat_coi_nhom2: record.quat_coi_nhom2,
-        timestamp: record.timestamp.toISOString(),
+        timestamp: record.timestamp instanceof Date 
+          ? record.timestamp.toISOString() 
+          : new Date(record.timestamp).toISOString(),
       }));
     } catch (error) {
       console.error('Error fetching alert history:', error);
@@ -149,7 +153,8 @@ export const sensorService = {
     sensorDataHistory = [];
     latestData = null;
     try {
-      await prisma.sensorData.deleteMany({});
+      await connectDB();
+      await SensorDataModel.deleteMany({});
     } catch (error) {
       console.error('Error clearing database history:', error);
     }

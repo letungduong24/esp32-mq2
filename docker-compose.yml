@@ -1,21 +1,21 @@
 services:
-  # PostgreSQL Database
-  postgres:
-    image: postgres:16-alpine
-    container_name: esp32-postgres
+  # MongoDB Database
+  mongodb:
+    image: mongo:7.0
+    container_name: esp32-mongodb
     env_file:
       - .env
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-esp32_user}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-esp32_password}
-      POSTGRES_DB: ${POSTGRES_DB:-esp32_db}
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER:-esp32_user}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:-esp32_password}
+      MONGO_INITDB_DATABASE: ${MONGO_DB:-esp32_db}
     ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+      - "${MONGO_PORT:-27017}:27017"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - mongodb_data:/data/db
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-esp32_user} -d ${POSTGRES_DB:-esp32_db}"]
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -27,27 +27,25 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      args:
-        # Pass DATABASE_URL as build argument (use dummy value for build, real value set at runtime)
-        DATABASE_URL: "postgresql://${POSTGRES_USER:-esp32_user}:${POSTGRES_PASSWORD:-esp32_password}@postgres:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-esp32_db}?schema=public"
     container_name: esp32-nextjs
     ports:
       - "3000:3000"
     env_file:
       - .env
     environment:
-      # Override DATABASE_URL để dùng hostname 'postgres' trong Docker network
-      - DATABASE_URL=postgresql://${POSTGRES_USER:-esp32_user}:${POSTGRES_PASSWORD:-esp32_password}@postgres:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-esp32_db}?schema=public
+      # MongoDB connection string
+      - MONGODB_URI=mongodb://${MONGO_USER:-esp32_user}:${MONGO_PASSWORD:-esp32_password}@mongodb:${MONGO_PORT:-27017}/${MONGO_DB:-esp32_db}?authSource=admin
+      - DATABASE_URL=mongodb://${MONGO_USER:-esp32_user}:${MONGO_PASSWORD:-esp32_password}@mongodb:${MONGO_PORT:-27017}/${MONGO_DB:-esp32_db}?authSource=admin
       - NODE_ENV=production
     depends_on:
-      postgres:
+      mongodb:
         condition: service_healthy
     restart: unless-stopped
     networks:
       - esp32-network
 
 volumes:
-  postgres_data:
+  mongodb_data:
     driver: local
 
 networks:

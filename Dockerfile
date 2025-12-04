@@ -17,13 +17,7 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Accept DATABASE_URL as build argument
-# Use a dummy value if not provided (Prisma generate doesn't actually connect)
-ARG DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy?schema=public"
-ENV DATABASE_URL=$DATABASE_URL
-
-# Generate Prisma Client
-RUN npx prisma generate
+# MongoDB connection is not needed at build time
 
 # Build Next.js
 RUN npm run build
@@ -41,10 +35,9 @@ RUN adduser --system --uid 1001 nextjs
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
-# Copy Prisma generated client (output is in generated/ folder)
-COPY --from=builder /app/generated ./generated
-COPY --from=builder /app/prisma ./prisma
-# Copy package.json for Prisma
+# Copy Mongoose models
+COPY --from=builder /app/models ./models
+# Copy package.json
 COPY --from=builder /app/package.json ./package.json
 
 # Set permissions
