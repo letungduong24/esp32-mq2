@@ -1,0 +1,55 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: esp32-postgres
+    env_file:
+      - .env
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-esp32_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-esp32_password}
+      POSTGRES_DB: ${POSTGRES_DB:-esp32_db}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-esp32_user} -d ${POSTGRES_DB:-esp32_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - esp32-network
+
+  # Next.js Application
+  nextjs:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: esp32-nextjs
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    environment:
+      # Override DATABASE_URL để dùng hostname 'postgres' trong Docker network
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-esp32_user}:${POSTGRES_PASSWORD:-esp32_password}@postgres:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-esp32_db}?schema=public
+      - NODE_ENV=production
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - esp32-network
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  esp32-network:
+    driver: bridge
+

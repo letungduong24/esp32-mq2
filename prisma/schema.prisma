@@ -1,0 +1,24 @@
+generator client {
+  provider     = "prisma-client"
+  output       = "../generated/"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model SensorData {
+  id                Int      @id @default(autoincrement())
+  mq2_sensor1       Int
+  mq2_sensor2       Int
+  den_canhbao_nhom1 String
+  den_canhbao_nhom2 String
+  quat_coi_nhom1    String
+  quat_coi_nhom2    String
+  timestamp         DateTime @default(now())
+  
+  @@index([timestamp])
+  @@map("sensor_data")
+}
+
