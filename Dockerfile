@@ -44,8 +44,13 @@ COPY --from=builder /app/.next/static ./.next/static
 # Copy Prisma generated client (output is in generated/ folder)
 COPY --from=builder /app/generated ./generated
 COPY --from=builder /app/prisma ./prisma
-# Copy package.json for Prisma
+# Copy package.json and node_modules for Prisma CLI
 COPY --from=builder /app/package.json ./package.json
+COPY --from=deps /app/node_modules ./node_modules
+
+# Copy entrypoint script
+COPY docker-entrypoint.sh /app/docker-entrypoint.sh
+RUN chmod +x /app/docker-entrypoint.sh
 
 # Set permissions
 RUN chown -R nextjs:nodejs /app
@@ -57,5 +62,5 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-CMD ["node", "server.js"]
+ENTRYPOINT ["/app/docker-entrypoint.sh"]
 
