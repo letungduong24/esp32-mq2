@@ -29,6 +29,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        # Pass DATABASE_URL as build argument (use dummy value for build, real value set at runtime)
+        DATABASE_URL: "postgresql://${POSTGRES_USER:-esp32_user}:${POSTGRES_PASSWORD:-esp32_password}@postgres:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-esp32_db}?schema=public"
     container_name: esp32-nextjs
     ports:
       - "3000:3000"
