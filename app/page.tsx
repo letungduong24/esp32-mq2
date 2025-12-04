@@ -8,7 +8,7 @@ import AlertBanner from './components/AlertBanner';
 import RelayControl from './components/RelayControl';
 import RealtimeChart from './components/RealtimeChart';
 import AlertsModal from './components/AlertsModal';
-import { setRelayControl } from './lib/api';
+import { setRelayControl, getLatestData } from './lib/api';
 import { Button } from '@/components/ui/button';
 
 export default function Home() {
@@ -20,46 +20,32 @@ export default function Home() {
   const [isAlertsModalOpen, setIsAlertsModalOpen] = useState(false);
 
   useEffect(() => {
-    // Kết nối SSE để nhận dữ liệu realtime
-    const eventSource = new EventSource('/api/esp32/stream');
-
-    eventSource.onopen = () => {
-      setIsConnected(true);
-      setIsLoading(false);
-      setError(null);
-      console.log('SSE connection opened');
-    };
-
-    eventSource.onmessage = (event) => {
+    // Fetch dữ liệu lần đầu
+    const fetchData = async () => {
       try {
-        const response = JSON.parse(event.data);
-        if (response.success && response.data) {
-          setSensorData(response.data);
-          setLastUpdate(new Date());
-          setIsConnected(true);
-          setError(null);
-        }
+        const data = await getLatestData();
+        setSensorData(data);
+        setLastUpdate(new Date());
+        setIsConnected(true);
+        setIsLoading(false);
+        setError(null);
       } catch (err) {
-        console.error('Error parsing SSE message:', err);
+        console.error('Error fetching data:', err);
+        setIsConnected(false);
+        setError('Không thể kết nối với server. Đang thử lại...');
+        setIsLoading(false);
       }
     };
 
-    eventSource.onerror = (error) => {
-      console.error('SSE connection error:', error);
-      setIsConnected(false);
-      setError('Mất kết nối với server. Đang thử kết nối lại...');
-      
-      // Tự động reconnect sau 3 giây
-      setTimeout(() => {
-        if (eventSource.readyState === EventSource.CLOSED) {
-          eventSource.close();
-        }
-      }, 3000);
-    };
+    // Fetch ngay lập tức
+    fetchData();
+
+    // Polling mỗi 2 giây để cập nhật dữ liệu
+    const interval = setInterval(fetchData, 2000);
 
     // Cleanup khi component unmount
     return () => {
-      eventSource.close();
+      clearInterval(interval);
     };
   }, []);
 
@@ -170,11 +156,11 @@ export default function Home() {
                   await setRelayControl(group, mode);
                 }}
               />
-              {/* Real-time Status */}
+              {/* Connection Status */}
               <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm text-center text-sm text-gray-500">
                 <p className="flex items-center justify-center gap-2 mb-2">
-                  <span className={`h-2 w-2 rounded-full ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></span>
-                  {isConnected ? 'Kết nối realtime đang hoạt động' : 'Đang kết nối...'}
+                  <span className={`h-2 w-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}></span>
+                  {isConnected ? 'Đã kết nối' : 'Đang kết nối...'}
                 </p>
                 {lastUpdate && (
                   <p className="text-xs">

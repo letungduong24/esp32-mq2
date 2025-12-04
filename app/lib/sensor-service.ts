@@ -12,14 +12,6 @@ let sensorDataHistory: SensorData[] = [];
 let latestData: SensorData | null = null;
 const MAX_HISTORY = 1000;
 
-// SSE clients để broadcast realtime
-type SSEClient = {
-  id: string;
-  controller: ReadableStreamDefaultController;
-};
-
-const sseClients: SSEClient[] = [];
-
 // Kiểm tra có cảnh báo không
 function hasAlert(data: Omit<SensorData, 'timestamp'>): boolean {
   return (
@@ -73,23 +65,7 @@ export const sensorService = {
       sensorDataHistory.shift();
     }
 
-    // Broadcast đến tất cả SSE clients
-    broadcastToClients(sensorData);
-
     return sensorData;
-  },
-
-  // Thêm SSE client
-  addSSEClient(client: SSEClient): void {
-    sseClients.push(client);
-  },
-
-  // Xóa SSE client
-  removeSSEClient(clientId: string): void {
-    const index = sseClients.findIndex((c) => c.id === clientId);
-    if (index > -1) {
-      sseClients.splice(index, 1);
-    }
   },
 
   // Lấy dữ liệu mới nhất (từ in-memory)
@@ -160,17 +136,3 @@ export const sensorService = {
     }
   },
 };
-
-// Broadcast dữ liệu đến tất cả SSE clients
-function broadcastToClients(data: SensorData): void {
-  const message = `data: ${JSON.stringify({ success: true, data })}\n\n`;
-  
-  sseClients.forEach((client) => {
-    try {
-      client.controller.enqueue(new TextEncoder().encode(message));
-    } catch (error) {
-      // Client đã disconnect, xóa khỏi danh sách
-      sensorService.removeSSEClient(client.id);
-    }
-  });
-}
