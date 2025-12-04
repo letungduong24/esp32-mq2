@@ -41,7 +41,8 @@ RUN adduser --system --uid 1001 nextjs
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+# Copy Prisma generated client (output is in generated/ folder)
+COPY --from=builder /app/generated ./generated
 COPY --from=builder /app/prisma ./prisma
 # Copy package.json for Prisma
 COPY --from=builder /app/package.json ./package.json
