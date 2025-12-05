@@ -1,31 +1,30 @@
-import { NextResponse } from 'next/server';
+  import { NextResponse } from 'next/server';
+import { getEffectiveControlMode } from '@/app/lib/schedule-service';
+import { startScheduleChecker } from '@/app/lib/schedule-checker';
+import { getControlState } from '@/app/lib/control-state';
 
-// Lưu trạng thái điều khiển (in-memory, có thể thay bằng database sau)
-let controlState = {
-  nhom1: 'auto' as 'auto' | 'off' | 'on',
-  nhom2: 'auto' as 'auto' | 'off' | 'on',
-};
+// Khởi động schedule checker khi module load
+declare const globalThis: {
+  scheduleCheckerStarted?: boolean;
+} & typeof global;
+
+if (typeof globalThis.scheduleCheckerStarted === 'undefined') {
+  startScheduleChecker();
+  globalThis.scheduleCheckerStarted = true;
+}
 
 // GET /api/esp32/command - ESP32 lấy lệnh điều khiển
+// Tự động áp dụng schedule nếu manual mode là 'auto'
 export async function GET() {
+  const currentState = getControlState();
+  
+  // Lấy effective mode (manual > schedule > auto)
+  const nhom1Effective = await getEffectiveControlMode(1, currentState.nhom1);
+  const nhom2Effective = await getEffectiveControlMode(2, currentState.nhom2);
+
   return NextResponse.json({
     success: true,
-    nhom1: controlState.nhom1,
-    nhom2: controlState.nhom2,
+    nhom1: nhom1Effective,
+    nhom2: nhom2Effective,
   });
 }
-
-// Export function để cập nhật từ control route
-export function updateControlState(group: 1 | 2, mode: 'auto' | 'off' | 'on') {
-  if (group === 1) {
-    controlState.nhom1 = mode;
-  } else {
-    controlState.nhom2 = mode;
-  }
-}
-
-// Export function để lấy state
-export function getControlState() {
-  return { ...controlState };
-}
-

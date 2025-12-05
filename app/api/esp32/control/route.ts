@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { NextAuthOptions } from 'next-auth';
-import { updateControlState, getControlState } from '../command/route';
+import { updateControlState, getControlState } from '@/app/lib/control-state';
+import { setManualOverride, clearManualOverride } from '@/app/lib/schedule-service';
 
 // Auth config
 const authOptions: NextAuthOptions = {
@@ -41,6 +42,14 @@ export async function POST(request: NextRequest) {
 
     // Cập nhật trạng thái
     updateControlState(group, mode);
+
+    // Cập nhật manual override
+    if (mode === 'auto') {
+      clearManualOverride(group);
+    } else {
+      // Bật/tắt thủ công → set override để schedule không chạy
+      setManualOverride(group, true);
+    }
 
     return NextResponse.json({
       success: true,

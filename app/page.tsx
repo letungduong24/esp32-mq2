@@ -10,6 +10,7 @@ import RelayControl from './components/RelayControl';
 import RealtimeChart from './components/RealtimeChart';
 import AlertsModal from './components/AlertsModal';
 import LoginDialog from './components/LoginDialog';
+import ScheduleControl from './components/ScheduleControl';
 import { setRelayControl, getLatestData } from './lib/api';
 import { Button } from '@/components/ui/button';
 
@@ -22,6 +23,8 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [isAlertsModalOpen, setIsAlertsModalOpen] = useState(false);
   const [isLoginDialogOpen, setIsLoginDialogOpen] = useState(false);
+  const [isScheduleOpen, setIsScheduleOpen] = useState(false);
+  const [selectedGroup, setSelectedGroup] = useState<1 | 2>(1);
 
   useEffect(() => {
     // Fetch dữ liệu lần đầu
@@ -29,13 +32,13 @@ export default function Home() {
       try {
         const data = await getLatestData();
         setSensorData(data);
-        setLastUpdate(new Date());
-        setIsConnected(true);
+          setLastUpdate(new Date());
+          setIsConnected(true);
         setIsLoading(false);
-        setError(null);
+          setError(null);
       } catch (err) {
         console.error('Error fetching data:', err);
-        setIsConnected(false);
+      setIsConnected(false);
         setError('Không thể kết nối với server. Đang thử lại...');
         setIsLoading(false);
       }
@@ -69,13 +72,13 @@ export default function Home() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button
-              onClick={() => setIsAlertsModalOpen(true)}
-              variant="default"
-              className="bg-yellow-500 hover:bg-yellow-600"
-            >
-              Lịch Sử Cảnh Báo
-            </Button>
+          <Button
+            onClick={() => setIsAlertsModalOpen(true)}
+            variant="default"
+            className="bg-yellow-500 hover:bg-yellow-600"
+          >
+            Lịch Sử Cảnh Báo
+          </Button>
             {session ? (
               <Button
                 onClick={() => signOut({ callbackUrl: '/' })}
@@ -179,6 +182,29 @@ export default function Home() {
                 }}
                 onLoginRequired={() => setIsLoginDialogOpen(true)}
               />
+              {/* Schedule Controls */}
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  onClick={() => {
+                    setSelectedGroup(1);
+                    setIsScheduleOpen(true);
+                  }}
+                  variant="outline"
+                  className="w-full"
+                >
+                  ⏰ Lịch Nhóm 1
+                </Button>
+                <Button
+                  onClick={() => {
+                    setSelectedGroup(2);
+                    setIsScheduleOpen(true);
+                  }}
+                  variant="outline"
+                  className="w-full"
+                >
+                  ⏰ Lịch Nhóm 2
+                </Button>
+              </div>
               {/* Connection Status */}
               <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm text-center text-sm text-gray-500">
                 <p className="flex items-center justify-center gap-2 mb-2">
@@ -209,6 +235,17 @@ export default function Home() {
         <LoginDialog
           isOpen={isLoginDialogOpen}
           onClose={() => setIsLoginDialogOpen(false)}
+        />
+
+        {/* Schedule Control */}
+        <ScheduleControl
+          groupNumber={selectedGroup}
+          isOpen={isScheduleOpen}
+          onClose={() => setIsScheduleOpen(false)}
+          onLoginRequired={() => {
+            setIsScheduleOpen(false);
+            setIsLoginDialogOpen(true);
+          }}
         />
       </div>
     </div>
